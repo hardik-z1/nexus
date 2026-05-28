@@ -21,7 +21,6 @@ const ChatContainer = () => {
 
   useEffect(() => {
     getMessages(selectedUser._id).then(() => {
-      // Mark all unread messages from selected user as read
       const { messages } = useChatStore.getState();
       messages.forEach((m) => {
         if (m.senderId === selectedUser._id && !m.read) {
@@ -87,16 +86,19 @@ const ChatContainer = () => {
               {message.text && <p>{message.text}</p>}
             </div>
             {message.senderId === authUser._id && (
-              <div className="chat-footer text-xs opacity-50 mt-1">
+              <div className="chat-footer text-xs mt-1">
                 {message.read ? (
-                  <span className="text-blue-400">✓✓</span>
+                  <span style={{ color: "#60a5fa", fontSize: "15px", fontWeight: "bold" }}>✓✓</span>
+                ) : message.delivered ? (
+                  <span style={{ opacity: 0.5, fontSize: "15px", fontWeight: "bold" }}>✓✓</span>
                 ) : (
-                  <span>✓</span>
+                  <span style={{ opacity: 0.5, fontSize: "15px", fontWeight: "bold" }}>✓</span>
                 )}
               </div>
             )}
           </div>
         ))}
+        <div ref={messageEndRef} />
       </div>
       <MessageInput />
     </div>

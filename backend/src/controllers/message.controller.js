@@ -41,14 +41,19 @@ export const sendMessage = async (req, res) => {
       const uploadResponse = await cloudinary.uploader.upload(image);
       imageUrl = uploadResponse.secure_url;
     }
+
+    const receiverSocketId = getReceiverSocketId(receiverId);
+    const isDelivered = !!receiverSocketId;
+
     const newMessage = new Message({
       senderId,
       receiverId,
       text,
       image: imageUrl,
+      delivered: isDelivered,
     });
     await newMessage.save();
-    const receiverSocketId = getReceiverSocketId(receiverId);
+
     if (receiverSocketId) {
       io.to(receiverSocketId).emit("newMessage", newMessage);
     }
@@ -64,12 +69,11 @@ export const markMessageAsRead = async (req, res) => {
     const { messageId } = req.params;
     const message = await Message.findByIdAndUpdate(
       messageId,
-      { read: true },
+      { read: true, delivered: true },
       { new: true }
     );
     if (!message) return res.status(404).json({ error: "Message not found" });
 
-    // Notify sender via socket
     const senderSocketId = getReceiverSocketId(message.senderId.toString());
     if (senderSocketId) {
       io.to(senderSocketId).emit("messageRead", messageId);
