@@ -65,38 +65,18 @@ export const useChatStore = create((set, get) => ({
   },
 
   subscribeToMessages: () => {
-    const { selectedUser } = get();
-    if (!selectedUser) return;
     const socket = useAuthStore.getState().socket;
-
-    socket.on("newMessage", (newMessage) => {
-      const isFromSelectedUser = newMessage.senderId === selectedUser._id;
-      if (isFromSelectedUser) {
-        set({ messages: [...get().messages, newMessage] });
-        get().markAsRead(newMessage._id);
-      } else {
-        // Increment unread count for sender
-        set((state) => ({
-          unreadCounts: {
-            ...state.unreadCounts,
-            [newMessage.senderId]: (state.unreadCounts[newMessage.senderId] || 0) + 1,
-          },
-        }));
-      }
-    });
-
     socket.on("messageRead", (messageId) => {
-      set({
-        messages: get().messages.map((m) =>
+      useChatStore.setState((state) => ({
+        messages: state.messages.map((m) =>
           m._id === messageId ? { ...m, read: true } : m
         ),
-      });
+      }));
     });
   },
 
   unsubscribeFromMessages: () => {
     const socket = useAuthStore.getState().socket;
-    socket.off("newMessage");
     socket.off("messageRead");
   },
 

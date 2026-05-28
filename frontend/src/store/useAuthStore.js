@@ -2,7 +2,7 @@
 import { axiosInstance } from "../lib/axios.js";
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
-import { useChatStore } from "./useChatStore";
+
 
 const BASE_URL = import.meta.env.MODE === "development" ? "http://localhost:5001" : "https://nexus-backend-3eul.onrender.com";
 
@@ -96,19 +96,23 @@ export const useAuthStore = create((set, get) => ({
 
     set({ socket: socket });
 
-    socket.on("getOnlineUsers", (userIds) => {
-      set({ onlineUsers: userIds });
-    });
-
     socket.on("newMessage", (newMessage) => {
-      const { selectedUser, messages, unreadCounts } = useChatStore.getState();
-      if (selectedUser && newMessage.senderId === selectedUser._id) return;
-      useChatStore.setState((state) => ({
-        unreadCounts: {
-          ...state.unreadCounts,
-          [newMessage.senderId]: (state.unreadCounts[newMessage.senderId] || 0) + 1,
-        },
-      }));
+      const { selectedUser, markAsRead } = useChatStore.getState();
+      const isFromSelectedUser = selectedUser && newMessage.senderId === selectedUser._id;
+
+      if (isFromSelectedUser) {
+        useChatStore.setState((state) => ({
+          messages: [...state.messages, newMessage],
+        }));
+        markAsRead(newMessage._id);
+      } else {
+        useChatStore.setState((state) => ({
+          unreadCounts: {
+            ...state.unreadCounts,
+            [newMessage.senderId]: (state.unreadCounts[newMessage.senderId] || 0) + 1,
+          },
+        }));
+      }
     });
   },
   disconnectSocket: () => {
