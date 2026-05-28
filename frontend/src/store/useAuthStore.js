@@ -90,6 +90,16 @@ export const useAuthStore = create((set, get) => ({
     socket.connect();
     set({ socket: socket });
 
+    socket.on("connect", async () => {
+      try {
+        await axiosInstance.put("/messages/delivered");
+        const res = await axiosInstance.get("/messages/unread-counts");
+        useChatStore.setState({ unreadCounts: res.data });
+      } catch (e) {
+        console.log("Error on connect sync:", e);
+      }
+    });
+
     socket.on("getOnlineUsers", (userIds) => {
       set({ onlineUsers: userIds });
     });
@@ -110,6 +120,14 @@ export const useAuthStore = create((set, get) => ({
           },
         }));
       }
+    });
+
+    socket.on("messagesDelivered", (receiverId) => {
+      useChatStore.setState((state) => ({
+        messages: state.messages.map((m) =>
+          m.receiverId === receiverId ? { ...m, delivered: true } : m
+        ),
+      }));
     });
   },
 

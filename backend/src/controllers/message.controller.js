@@ -85,3 +85,50 @@ export const markMessageAsRead = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+export const markMessagesDelivered = async (req, res) => {
+  try {
+    const myId = req.user._id;
+    const messages = await Message.find({ receiverId: myId, delivered: false });
+
+    if (messages.length === 0) return res.status(200).json({ updated: 0 });
+
+    await Message.updateMany(
+      { receiverId: myId, delivered: false },
+      { delivered: true }
+    );
+
+    const senderIds = [...new Set(messages.map((m) => m.senderId.toString()))];
+    senderIds.forEach((senderId) => {
+      const senderSocketId = getReceiverSocketId(senderId);
+      if (senderSocketId) {
+        io.to(senderSocketId).emit("messagesDelivered", myId.toString());
+      }
+    });
+
+    res.status(200).json({ updated: messages.length });
+  } catch (error) {
+    console.log("Error in markMessagesDelivered: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getUnreadCounts = async (req, res) => {
+  try {
+    const myId = req.user._id;
+    const counts = await Message.aggregate([
+      { $match: { receiverId: myId, read: false } },
+      { $group: { _id: "$senderId", count: { $sum: 1 } } },
+    ]);
+
+    const unreadCounts = {};
+    counts.forEach(({ _id, count }) => {
+      unreadCounts[_id.toString()] = count;
+    });
+
+    res.status(200).json(unreadCounts);
+  } catch (error) {
+    console.log("Error in getUnreadCounts: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
