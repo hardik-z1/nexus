@@ -26,6 +26,15 @@ io.on("connection", (socket) => {
   const userId = socket.handshake.query.userId;
   if (userId) userSocketMap[userId] = socket.id;
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
+  socket.on("typing", (receiverId) => {
+    const receiverSocketId = userSocketMap[receiverId];
+    if (receiverSocketId) io.to(receiverSocketId).emit("typing", socket.id);
+  });
+
+  socket.on("stopTyping", (receiverId) => {
+    const receiverSocketId = userSocketMap[receiverId];
+    if (receiverSocketId) io.to(receiverSocketId).emit("stopTyping", socket.id);
+  });
   socket.on("disconnect", () => {
     console.log("A user disconnected", socket.id);
     delete userSocketMap[userId];
