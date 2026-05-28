@@ -5,8 +5,7 @@ import SidebarSkeleton from "./skeletons/SidebarSkeleton";
 import { Users } from "lucide-react";
 
 const Sidebar = () => {
-  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading } = useChatStore();
-
+  const { getUsers, users, selectedUser, setSelectedUser, isUsersLoading, unreadCounts, clearUnread } = useChatStore();
   const { onlineUsers } = useAuthStore();
   const [showOnlineOnly, setShowOnlineOnly] = useState(false);
 
@@ -18,6 +17,11 @@ const Sidebar = () => {
     ? users.filter((user) => onlineUsers.includes(user._id))
     : users;
 
+  const handleSelectUser = (user) => {
+    setSelectedUser(user);
+    clearUnread(user._id);
+  };
+
   if (isUsersLoading) return <SidebarSkeleton />;
 
   return (
@@ -27,7 +31,6 @@ const Sidebar = () => {
           <Users className="size-6" />
           <span className="font-medium hidden lg:block">Contacts</span>
         </div>
-        {/* TODO: Online filter toggle */}
         <div className="mt-3 hidden lg:flex items-center gap-2">
           <label className="cursor-pointer flex items-center gap-2">
             <input
@@ -46,7 +49,7 @@ const Sidebar = () => {
         {filteredUsers.map((user) => (
           <button
             key={user._id}
-            onClick={() => setSelectedUser(user)}
+            onClick={() => handleSelectUser(user)}
             className={`
               w-full p-3 flex items-center gap-3
               hover:bg-base-300 transition-colors
@@ -60,23 +63,29 @@ const Sidebar = () => {
                 className="size-12 object-cover rounded-full"
               />
               {onlineUsers.includes(user._id) && (
-                <span
-                  className="absolute bottom-0 right-0 size-3 bg-green-500 
-                  rounded-full ring-2 ring-zinc-900"
-                />
+                <span className="absolute bottom-0 right-0 size-3 bg-green-500 rounded-full ring-2 ring-zinc-900" />
+              )}
+              {unreadCounts[user._id] > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full size-5 flex items-center justify-center">
+                  {unreadCounts[user._id] > 9 ? "9+" : unreadCounts[user._id]}
+                </span>
               )}
             </div>
-
-            {/* User info - only visible on larger screens */}
-            <div className="hidden lg:block text-left min-w-0">
-              <div className="font-medium truncate">{user.fullName}</div>
+            <div className="hidden lg:block text-left min-w-0 flex-1">
+              <div className="flex items-center justify-between">
+                <div className="font-medium truncate">{user.fullName}</div>
+                {unreadCounts[user._id] > 0 && (
+                  <span className="bg-red-500 text-white text-xs font-bold rounded-full px-1.5 py-0.5 ml-2">
+                    {unreadCounts[user._id] > 9 ? "9+" : unreadCounts[user._id]}
+                  </span>
+                )}
+              </div>
               <div className="text-sm text-zinc-400">
                 {onlineUsers.includes(user._id) ? "Online" : "Offline"}
               </div>
             </div>
           </button>
         ))}
-
         {filteredUsers.length === 0 && (
           <div className="text-center text-zinc-500 py-4">No online users</div>
         )}
@@ -84,4 +93,5 @@ const Sidebar = () => {
     </aside>
   );
 };
+
 export default Sidebar;
